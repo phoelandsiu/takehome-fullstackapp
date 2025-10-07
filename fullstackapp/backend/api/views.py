@@ -61,26 +61,31 @@ def get_comments(request):
     return Response(serializer.data)
 
 @api_view(['POST'])
-@permission_classes([IsAdminUser])
+# @permission_classes([IsAdminUser])
 def create_comment(request):
-    # Replace the text for comment with id that already exists using PATCH
-    # Create a net new comment if id does not already exist using POST
-    data = request.data
-    pk = data.get('id')
-    comment = None
-    if pk is not None:
-        try:
-            comment = Comment.objects.get(pk=pk)
-        except Comment.DoesNotExist:
-            comment = None
+    ser = CommentSerializer(data=request.data)
+    if ser.is_valid():
+        obj = ser.save()
+        return Response(CommentSerializer(obj).data, status=status.HTTP_201_CREATED)
+    return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+    # # Replace the text for comment with id that already exists using PATCH
+    # # Create a net new comment if id does not already exist using POST
+    # data = request.data
+    # pk = data.get('id')
+    # comment = None
+    # if pk is not None:
+    #     try:
+    #         comment = Comment.objects.get(pk=pk)
+    #     except Comment.DoesNotExist:
+    #         comment = None
 
-    partial = comment is not None
-    serializer = CommentSerializer(comment, data=data, partial=partial)
-    success_status = status.HTTP_200_OK if comment is not None else status.HTTP_201_CREATED
-    return _save_serializer_and_respond(serializer, success_status=success_status)
+    # partial = comment is not None
+    # serializer = CommentSerializer(comment, data=data, partial=partial)
+    # success_status = status.HTTP_200_OK if comment is not None else status.HTTP_201_CREATED
+    # return _save_serializer_and_respond(serializer, success_status=success_status)
 
 @api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
-@permission_classes([IsAuthenticatedOrReadOnly])
+# @permission_classes([IsAuthenticatedOrReadOnly])
 def comment_detail(request, pk):
     try:
         comment = Comment.objects.get(pk=pk)

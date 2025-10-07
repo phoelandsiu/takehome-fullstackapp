@@ -9,7 +9,7 @@ class User(models.Model):
         return self.name
 
 class Comment(models.Model):
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     author = models.CharField(max_length=100)
     text = models.TextField()
     date = models.CharField(max_length=100)
