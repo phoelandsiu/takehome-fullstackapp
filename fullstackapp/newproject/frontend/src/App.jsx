@@ -13,6 +13,7 @@ function App() {
         <thead>
           <tr>
             <th align="left">Author</th>
+            <th align="left">Image</th>
             <th align="left">Text</th>
             <th align="left">Date</th>
             <th align="left">Likes</th>
