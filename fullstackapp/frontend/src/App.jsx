@@ -15,6 +15,9 @@ function CommentForm({ onSaved }) {
   const [text, setText] = useState("");
   const [likes, setLikes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(null);
+
+  const onEdit = (c) => setEditing(c);
 
   const addComment = async () => {
     setSaving(true);
@@ -57,7 +60,7 @@ function CommentForm({ onSaved }) {
       setSaving(false);
     } catch (err) {
       console.error("addComment error:", err);
-      if (Error.name === "AbortError") alert("Request timed out. Try again.");
+      if (err.name === "AbortError") alert("Request timed out. Try again.");
       else alert("Network error. Please try again.");
     } finally {
       setSaving(false);
@@ -114,13 +117,25 @@ function CommentForm({ onSaved }) {
 
 function App() {
   const [comments, setComments] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const [draftText, setDraftText] = useState("");
+
+  function startEdit(c) {
+    setEditingId(c.id);
+    setDraftText(c.text ?? "");
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setDraftText("");
+  }
 
   const fetchComments = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/comments/`);
       if (!res.ok) {
         console.error(
-          `GET ${BASE_URL}/api/comments/ failed`,
+          `GET ${API_BASE}/api/comments/ failed`,
           res.status,
           await res.text()
         );
@@ -147,7 +162,7 @@ function App() {
 
   async function handleDelete(id) {
     try {
-      const url = `${API_BASE}/api/comments/${id}`; // backend URL that maps to comment
+      const url = `${API_BASE}/api/comments/${id}/`; // backend URL that maps to comment
       const res = await fetch(url, {
         method: "DELETE",
         headers: {
@@ -156,7 +171,7 @@ function App() {
       });
 
       if (res.ok) {
-        setComments(prev => prev.filter(c => (c.id >> c._localId) !== id));
+        setComments(prev => prev.filter(c => (c.id ?? c._localId) !== id));
       }
       else {
         alert(`Delete failed ${res.status}`);
@@ -165,6 +180,34 @@ function App() {
       console.error("DELETE error:", err);
       alert("Error deleting comment");
     } 
+  }
+
+  async function handleEdit(id) {
+    const text = draftText.trim();
+    if (!text) return alert("Text cannot be empty");
+
+    try {
+      const updates = { text };
+      const url = `${API_BASE}/api/comments/${id}/`;
+      const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCsrfToken(),
+        },
+        credentials: "include",
+        body: JSON.stringify(updates),
+      });
+
+      const raw = await res.text();
+      if (!res.ok) return alert(`Edit failed (${res.status}): ${raw || res.statusText}`);
+
+      const updated = raw ? JSON.parse(raw) : null;
+      setComments(prev => prev.map(c => (c.id === id ? (updated ?? {...c, ...updates }) : c)));
+      cancelEdit();
+    } catch (err) {
+      console.error("Error with Edit:", err);
+    }
   }
 
   return (
@@ -187,7 +230,16 @@ function App() {
               </tr>
             </thead>
             <tbody>
-              <CommentTable comments={comments} onDelete={handleDelete} />
+              <CommentTable
+                comments={comments}
+                onEdit={startEdit}
+                onSave={() => handleEdit(editingId)}
+                onCancel={cancelEdit}
+                editingId={editingId}
+                draftText={draftText}
+                onChangeDraft={setDraftText}
+                onDelete={handleDelete}
+              />
             </tbody>
           </table>
         </section>

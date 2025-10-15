@@ -11,5 +11,5 @@ urlpatterns = [
 
     path('comments/', get_comments, name='get_comments'),
     path('comments/create/', create_comment, name='create_comment'),
-    path('comments/<int:pk>', comment_detail, name='comment_detail'),
+    path('comments/<int:pk>/', comment_detail, name='comment_detail'),
 ]
