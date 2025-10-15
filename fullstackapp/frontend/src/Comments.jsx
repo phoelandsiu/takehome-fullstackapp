@@ -6,7 +6,7 @@ export default function CommentTable({ comments = [], onDelete }) {
       <tr>
         <td colSpan={5}>No comments yet</td>
       </tr>
-    );
+    )
   }
   return (
     <>

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import CommentTable from "./Comments";
 // Remove the JSON import unless you actually use it
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_BASE = "http://127.0.0.1:8000";
 
 function getCsrfToken(name = "csrftoken") {
   const m = document.cookie.match(new RegExp(`(^|; )${name}=([^;]+)`));
@@ -18,58 +18,58 @@ function CommentForm({ onSaved }) {
 
   const addComment = async () => {
     setSaving(true);
-    const img = (image || "").trim();
-    const commentData = {
-      author,
-      text,
-      date: new Date().toISOString(),
-      likes: likes === "" ? 0 : Number(likes),
-    };
-    if (img) commentData.image = img;
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/comments/create/", {
+      // Build data to send
+      const data = {
+        author: author.trim(),
+        text: text.trim(),
+        date: new Date().toISOString(),
+        likes: likes === "" ? 0 : Math.max(0, Number(likes)),
+        ...(image.trim() ? { image: image.trim() } : {}),
+      };
+
+      const res = await fetch(`${API_BASE}/api/comments/create/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRFToken": getCsrfToken(), // Django CSRF
+          "X-CSRFToken": getCsrfToken(),
         },
-        body: JSON.stringify(commentData),
+        body: JSON.stringify(data),
       });
 
-      let created = null;
-      try {
-        created = await res.json();
-      } catch {
-        /* 204/empty body is OK */
-      }
-
       if (!res.ok) {
-        console.error(
-          "POST http://127.0.0.1:8000/api/comments/create/ failed",
-          res.status,
-          created || (await res.text())
-        );
-        return; // don't clear/reset if it failed
+        alert("Save failed. Please check your inputs and try again.");
+        setSaving(false);
+        return;
       }
 
-      // Pass created object up (or fall back to local data)
-      onSaved?.(created || { id: Date.now().toString(), ...commentData });
+      const created = await res
+        .json()
+        .catch(() => ({ id: Date.now.toString(), ...data }));
+      onSaved?.(created);
 
-      // clear form
+      // Clear the form
       setAuthor("");
       setImage("");
       setText("");
       setLikes("");
-    } catch (e) {
-      console.error("Network error creating comment:", e);
+      setSaving(false);
+    } catch (err) {
+      console.error("addComment error:", err);
+      if (Error.name === "AbortError") alert("Request timed out. Try again.");
+      else alert("Network error. Please try again.");
     } finally {
       setSaving(false);
     }
   };
-
   const handleSubmit = (e) => {
     e.preventDefault(); // <-- avoid page reload
+    const form = e.currentTarget;
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
     addComment();
   };
 
@@ -94,15 +94,8 @@ function CommentForm({ onSaved }) {
         value={text}
         onChange={(e) => setText(e.target.value)}
         required
-        rows={5} // was 8
-        style={{
-          width: "95%",
-          minHeight: 110, // was 160
-          maxHeight: 220, // prevent it from getting too tall
-          padding: 8,
-          lineHeight: 1.4,
-          resize: "vertical", // still let users drag taller if needed
-        }}
+        minLength={3}
+        rows={5}
       />
       <input
         type="number"
@@ -124,10 +117,10 @@ function App() {
 
   const fetchComments = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/comments/");
+      const res = await fetch(`${API_BASE}/api/comments/`);
       if (!res.ok) {
         console.error(
-          "GET http://127.0.0.1:8000/api/comments/ failed",
+          `GET ${BASE_URL}/api/comments/ failed`,
           res.status,
           await res.text()
         );
@@ -154,29 +147,24 @@ function App() {
 
   async function handleDelete(id) {
     try {
-      const url = `${API_BASE}/api/comments/${id}/`; // backend URL, include trailing slash
+      const url = `${API_BASE}/api/comments/${id}`; // backend URL that maps to comment
       const res = await fetch(url, {
         method: "DELETE",
         headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": getCsrfToken(), // if using Django session auth
+          "X-CSRFToken": getCsrfToken(),
         },
-        credentials: "include",
       });
 
-      if (!res.ok) {
-        const body = await res.text().catch(() => "");
-        console.error("DELETE failed", res.status, body);
-        alert("Delete failed: " + res.status);
-        return;
+      if (res.ok) {
+        setComments(prev => prev.filter(c => (c.id >> c._localId) !== id));
       }
-
-      // remove from local state after successful delete
-      setComments((prev) => prev.filter((c) => (c.id ?? c._localId) !== id));
+      else {
+        alert(`Delete failed ${res.status}`);
+      }
     } catch (err) {
-      console.error(err);
-      alert("Network error");
-    }
+      console.error("DELETE error:", err);
+      alert("Error deleting comment");
+    } 
   }
 
   return (
