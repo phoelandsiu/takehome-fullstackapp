@@ -168,17 +168,17 @@ function App() {
   }
 
   return (
-    <main style={{ padding: 16 }}>
+    <main style={{ padding: 50 }}>
       <h1>Comments</h1>
-      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-        <section style={{ flex: 1 }}>
+      <div style={{ display: "flex", gap: 24, flexWrap: "nowrap" }}>
+        <section style={{ width: 950 }}>
           <table
             width="100%"
             cellPadding="8"
             style={{ borderCollapse: "collapse" }}
           >
             <thead>
-              <tr>
+              <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
                 <th align="left">Author</th>
                 <th align="left">Image</th>
                 <th align="left">Text</th>
@@ -195,6 +195,7 @@ function App() {
         <aside
           style={{
             width: 320,
+            flex: "0 0 320px",
             border: "1px solid #fff",
             borderRadius: 12,
             padding: 16,

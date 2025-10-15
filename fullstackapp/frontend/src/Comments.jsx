@@ -8,14 +8,23 @@ export default function CommentTable({ comments = [], onDelete }) {
       </tr>
     )
   }
-  return (
-    <>
-      {comments.map((c, idx) => {
-        const key = c.id ?? c._localId ?? idx;
-        return <CommentRow key={key} comment={c} onDelete={onDelete} />;
-      })}
-    </>
-  );
+  return comments.map((c,i) => {
+    const key = c.id ?? i;
+    const showRule = i < comments.length - 1;
+
+    return (
+      <React.Fragment key={key}>
+        <CommentRow comment={c} onDelete={onDelete} />
+        {showRule && (
+          <tr>
+            <td colSpan={6} style={{ padding: 0 }}>
+              <div style={{ height: 1, background: "#d3d3d36b" }}/>
+            </td>
+          </tr>
+        )}
+      </React.Fragment>
+    )
+  })
 }
 
 function CommentRow({ comment, onDelete }) {
@@ -25,35 +34,22 @@ function CommentRow({ comment, onDelete }) {
   return (
     <tr>
       <td>{authorName}</td>
-      <td>
-        {image ? (
-          <img
-            src={image}
-            alt=""                     // a11y
-            loading="lazy"
-            width={48}
-            height={48}
-            style={{ objectFit: 'cover', marginRight: 8, verticalAlign: 'middle' }}
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          />
-        ) : null}
-      </td>
-      <td>{text}</td>
-      <td>{date ? new Date(date).toLocaleDateString() : ''}</td>
+      <td> {image && 
+        <img src={image} 
+          alt="" 
+          width={48} 
+          height={48} 
+          loading="lazy" 
+          onError={(e) => { e.currentTarget.style.display = "none"; }}
+          />}
+        </td>
+      <td>{text || ""}</td>
+      <td>{date ? new Date(date).toLocaleDateString() : ""}</td>
       <td>{likes ?? 0}</td>
-
       <td>
-        <button
+        <button 
           type="button"
-          onClick={() => {
-            if (!id) {
-              console.warn('Cannot delete comment without id', comment);
-              return;
-            }
-            if (window.confirm('Delete this comment?')) onDelete?.(id);
-          }}
-          style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '4px 8px' }}
-        >
+          onClick={() => id && window.confirm("Delete this comment?") && onDelete?.(id)}>
           Delete
         </button>
       </td>
